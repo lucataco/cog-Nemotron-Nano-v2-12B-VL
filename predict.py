@@ -201,7 +201,7 @@ class Predictor(BasePredictor):
             default="Describe what you see in detail."
         ),
         images: List[Path] = Input(
-            description="List of input images (1-4 images supported, provide either images or video)",
+            description="List of input images (1-4 images supported)",
             default=None
         ),
         video: Optional[Path] = Input(
@@ -221,7 +221,7 @@ class Predictor(BasePredictor):
             le=1.0
         ),
         max_new_tokens: Optional[int] = Input(
-            description="Maximum number of tokens to generate (default: 1024 for images, 512 for videos)",
+            description="Maximum number of tokens to generate (default: 1024 for images, 128 for videos)",
             default=None,
             ge=1,
             le=2048
@@ -230,6 +230,12 @@ class Predictor(BasePredictor):
             description="Sampling temperature (0 for greedy decoding)",
             default=0.0,
             ge=0.0,
+            le=2.0
+        ),
+        repetition_penalty: float = Input(
+            description="Repetition penalty to reduce repetitive text (1.0 = no penalty)",
+            default=1.0,
+            ge=1.0,
             le=2.0
         ),
         top_p: float = Input(
@@ -259,8 +265,9 @@ class Predictor(BasePredictor):
         is_video = video is not None
 
         # Set default max_new_tokens based on input type
+        # Following official examples: 1024 for images, 128 for video
         if max_new_tokens is None:
-            max_new_tokens = 512 if is_video else 1024
+            max_new_tokens = 128 if is_video else 1024
 
         # Process media input and get processor kwargs
         processor_kwargs = self._process_media_input(
@@ -288,6 +295,8 @@ class Predictor(BasePredictor):
             "max_new_tokens": max_new_tokens,
             "do_sample": do_sample,
             "eos_token_id": self.tokenizer.eos_token_id,
+            "pad_token_id": self.tokenizer.pad_token_id,
+            "bos_token_id": self.tokenizer.bos_token_id,
         }
 
         # Add pixel_values for image or video
@@ -300,6 +309,10 @@ class Predictor(BasePredictor):
         if do_sample:
             generate_kwargs["temperature"] = temperature
             generate_kwargs["top_p"] = top_p
+
+        # Add repetition penalty if not default
+        if repetition_penalty != 1.0:
+            generate_kwargs["repetition_penalty"] = repetition_penalty
 
         # Generate output
         with torch.inference_mode():
