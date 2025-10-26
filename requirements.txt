@@ -1,0 +1,25 @@
+# Dependencies for NVIDIA Nemotron Nano VL 12B V2
+# Based on requirements from checkpoints/README.md
+
+# Core dependencies
+torch==2.4.0
+torchvision>=0.15.0
+pillow>=10.0.0
+numpy>=1.24.0
+
+# Transformers ecosystem
+transformers>=4.53,<4.54
+accelerate>=0.20.0
+tokenizers>=0.13.3
+
+# Vision model dependencies
+timm>=0.9.0
+open_clip_torch>=2.20.0
+
+# Mamba/SSM dependencies (for hybrid architecture)
+https://github.com/state-spaces/mamba/releases/download/v2.2.5/mamba_ssm-2.2.5+cu12torch2.4cxx11abiFALSE-cp311-cp311-linux_x86_64.whl
+https://github.com/Dao-AILab/causal-conv1d/releases/download/v1.4.0/causal_conv1d-1.4.0+cu122torch2.4cxx11abiFALSE-cp311-cp311-linux_x86_64.whl
+
+# Additional utilities
+sentencepiece>=0.1.99
+protobuf>=3.20.0
