@@ -10,7 +10,7 @@ import shutil
 import video_io
 import tempfile
 import subprocess
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 from PIL import Image
 from cog import BasePredictor, Input, Path
 from transformers import AutoModelForCausalLM, AutoProcessor, AutoTokenizer
@@ -108,17 +108,17 @@ class Predictor(BasePredictor):
 
     def _process_media_input(
         self,
-        image: Optional[Path] = None,
+        images: Optional[list] = None,
         video: Optional[Path] = None,
         video_fps: int = 1,
         prompt: str = "Describe what you see.",
         system_prompt: str = "/no_think"
     ) -> dict:
-        """Process image or video input into model-ready format.
+        """Process image(s) or video input into model-ready format.
 
         Args:
-            image: Path to image file (mutually exclusive with video)
-            video: Path to video file (mutually exclusive with image)
+            images: List of Path objects to image files (mutually exclusive with video)
+            video: Path to video file (mutually exclusive with images)
             video_fps: FPS for video frame extraction
             prompt: Text prompt
             system_prompt: System prompt
@@ -129,19 +129,17 @@ class Predictor(BasePredictor):
         temp_dir = None
 
         try:
-            if image is not None:
-                # Process single image
-                input_image = Image.open(str(image)).convert("RGB")
+            if images is not None:
+                # Process single or multiple images
+                pil_images = [Image.open(str(img)).convert("RGB") for img in images]
+
+                # Create message content with multiple image placeholders
+                content = [{"type": "image", "image": f"/path/to/image{i+1}"} for i in range(len(pil_images))]
+                content.append({"type": "text", "text": prompt})
 
                 messages = [
                     {"role": "system", "content": system_prompt},
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "image", "image": ""},
-                            {"type": "text", "text": prompt},
-                        ],
-                    }
+                    {"role": "user", "content": content}
                 ]
 
                 formatted_prompt = self.tokenizer.apply_chat_template(
@@ -152,7 +150,7 @@ class Predictor(BasePredictor):
 
                 return {
                     "text": [formatted_prompt],
-                    "images": [input_image],
+                    "images": pil_images,
                     "return_tensors": "pt"
                 }
 
@@ -202,12 +200,12 @@ class Predictor(BasePredictor):
             description="Text prompt or question about the media",
             default="Describe what you see in detail."
         ),
-        image: Optional[Path] = Input(
-            description="Input image for visual question answering (provide either image or video, not both)",
+        images: List[Path] = Input(
+            description="List of input images (1-4 images supported, provide either images or video)",
             default=None
         ),
         video: Optional[Path] = Input(
-            description="Input video file (provide either image or video, not both)",
+            description="Input video file (provide either images or video, not both)",
             default=None
         ),
         video_fps: int = Input(
@@ -245,13 +243,17 @@ class Predictor(BasePredictor):
             default="/no_think"
         ),
     ) -> str:
-        """Run a single prediction on the model with either image or video input"""
+        """Run a single prediction on the model with image(s) or video input"""
 
         # Validate inputs
-        if image is None and video is None:
-            raise ValueError("Must provide either 'image' or 'video' input")
-        if image is not None and video is not None:
-            raise ValueError("Cannot provide both 'image' and 'video' inputs. Choose one.")
+        if not images and video is None:
+            raise ValueError("Must provide at least one image or a video input")
+        if images and video is not None:
+            raise ValueError("Cannot provide both images and video inputs. Choose one.")
+        if images and len(images) > 4:
+            raise ValueError("Maximum of 4 images supported")
+        if images and len(images) < 1:
+            raise ValueError("Must provide at least one image")
 
         # Determine if processing video
         is_video = video is not None
@@ -262,7 +264,7 @@ class Predictor(BasePredictor):
 
         # Process media input and get processor kwargs
         processor_kwargs = self._process_media_input(
-            image=image,
+            images=images if images else None,
             video=video,
             video_fps=video_fps,
             prompt=prompt,
