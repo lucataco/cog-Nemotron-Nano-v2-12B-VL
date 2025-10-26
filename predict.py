@@ -2,7 +2,11 @@
 # https://cog.run/python
 
 import os
+import sys
+import time
 import torch
+import subprocess
+from pathlib import Path as FilePath
 from PIL import Image
 from cog import BasePredictor, Input, Path
 from transformers import AutoModelForCausalLM, AutoProcessor, AutoTokenizer
@@ -13,6 +17,15 @@ os.environ["HF_DATASETS_OFFLINE"] = "1"
 
 MODEL_PATH = "./checkpoints"
 MODEL_URL = "https://weights.replicate.delivery/default/NVIDIA/Nemotron-Nano-v2-12B-VL/model.tar"
+RADIO_PATH = "./C_RADIOv2_H"
+RADIO_URL = "https://weights.replicate.delivery/default/NVIDIA/Nemotron-Nano-v2-12B-VL/radio.tar"
+
+def download_weights(url, dest):
+    start = time.time()
+    print("downloading url: ", url)
+    print("downloading to: ", dest)
+    subprocess.check_call(["pget", "-xf", url, dest], close_fds=False)
+    print("downloading took: ", time.time() - start)
 
 class Predictor(BasePredictor):
     def setup(self) -> None:
@@ -21,10 +34,9 @@ class Predictor(BasePredictor):
 
         # Check if model exists locally
         if not os.path.exists(MODEL_PATH):
-            raise FileNotFoundError(
-                f"Model not found at {MODEL_PATH}. "
-                "Please ensure the checkpoints folder contains all model files."
-            )
+            download_weights(MODEL_URL, MODEL_PATH)
+        if not os.path.exists(RADIO_PATH):
+            download_weights(RADIO_URL, RADIO_PATH)
 
         # Load model with local files only
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
