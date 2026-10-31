@@ -200,7 +200,11 @@ Key dependencies (see `requirements.txt` for full list):
 
 ## License
 
-This implementation is provided for use with the NVIDIA Nemotron Nano VL 12B V2 model, which is released under the **NVIDIA Open Model License** for non-commercial use. See [MODEL.md](MODEL.md) for full license details.
+The code in this repository is licensed under the [Apache License 2.0](LICENSE).
+
+`video_io.py` comes from [nvidia/NVIDIA-Nemotron-Nano-12B-v2-VL-BF16](https://huggingface.co/nvidia/NVIDIA-Nemotron-Nano-12B-v2-VL-BF16), which is Apache 2.0.
+
+The model weights are not covered by this license. [NVIDIA Nemotron Nano 12B v2 VL](https://huggingface.co/nvidia/NVIDIA-Nemotron-Nano-12B-v2-VL-BF16) is released under the [NVIDIA Open Model License](https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-open-model-license/), which allows commercial use. `MODEL.md` is a pre-release model card; the current terms are on the Hugging Face model card.
 
 ## Contributing
 
